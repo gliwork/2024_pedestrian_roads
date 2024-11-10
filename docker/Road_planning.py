@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 # coding: utf-8
 
-# In[1]:
+# In[30]:
 
 
 import geopandas as gpd
@@ -15,6 +15,7 @@ import matplotlib.pyplot as plt
 import numpy as np
 from matplotlib.backends.backend_agg import FigureCanvasAgg as FigureCanvas
 from PIL import Image
+import heapq
 
 
 # In[2]:
@@ -244,7 +245,7 @@ def create_polygons(xy_min, xy_max, z1):
 #check_points_df
 
 
-# In[17]:
+# In[7]:
 
 
 def drop_empty_from_array(arr):
@@ -252,7 +253,7 @@ def drop_empty_from_array(arr):
     return filtered_arr
 
 
-# In[27]:
+# In[8]:
 
 
 #Выбрать из базы метро
@@ -262,7 +263,7 @@ def select_metro(df):
     return metro
 
 
-# In[18]:
+# In[9]:
 
 
 #Выбрать из базы остановки
@@ -276,7 +277,7 @@ def select_stops(df):
     return filtered_df
 
 
-# In[125]:
+# In[10]:
 
 
 figsize = (20,20) #select size of picture and thus matrix
@@ -287,13 +288,13 @@ half_width = 0.01
 half_height = 0.01
 
 
-# In[126]:
+# In[11]:
 
 
 fnames = ['Streets_исходные.shp', "Дома_исходные.shp", 'Выходы_метро.shp', 'Остановки_ОТ.shp', "House_1очередь_ЖК.shp",'Streets_1очередь.shp','Streets_2очередь.shp',"House_2очередь_ЖК.shp",'Streets_3очередь.shp',"House_3очередь_ЖК.shp"]
 
 
-# In[127]:
+# In[12]:
 
 
 #Находим интересующие нас размеры
@@ -315,7 +316,7 @@ print(xy_max[0], xy_min[1])
 print(xy_max[0], xy_max[1])
 
 
-# In[128]:
+# In[13]:
 
 
 #создаем полигон с расширенными координатами для выборки из слоев добавляя полосы шириной z 
@@ -324,7 +325,7 @@ borders_df, polygon = select_region(xy_min, xy_max, z)
 borders_df
 
 
-# In[129]:
+# In[14]:
 
 
 # Загрузка данных из файла .shp - исходная ситуация
@@ -362,7 +363,7 @@ df.plot(color = df['color'], figsize = figsize)
 #plt.axis('off')
 
 
-# In[130]:
+# In[15]:
 
 
 file_path = path+"House_1очередь_ЖК.shp"  # Укажи путь к твоему файлу
@@ -382,13 +383,13 @@ df1.plot(ax=ax, color=df1.color, markersize=1)  # Adjust marker color and size
 plt.axis('off')
 
 
-# In[136]:
+# In[ ]:
 
 
 
 
 
-# In[146]:
+# In[16]:
 
 
 df1 = house_centers(df1)
@@ -408,14 +409,14 @@ print(f'Number of metro entrances in vicinity - {len(metro)}')
 print(f'Number of bus stops in vicinity - {len(stops)}')
 
 
-# In[149]:
+# In[17]:
 
 
 schools.geometry 
 kinder_g.geometry
 
 
-# In[133]:
+# In[21]:
 
 
 # Function to map a point's coordinates to pixel coordinates
@@ -459,59 +460,29 @@ def find_point_coordinates(df, x_min, x_max, y_min, y_max, width, height):
     coord = {}
     # Output the pixel coordinates
     for idx, (x, y) in enumerate(pixel_coords):
-        print(f"Point {idx}: Pixel coordinates -> ({int(x+band_x)}, {int(y+band_y)})")
-        coord[idx] = (int(x+band_x),int(y+band_y))
+        print(f"Point {idx}: Pixel coordinates -> ({int(y+band_y)}, {int(x+band_x)})")
+        coord[idx] = (int(y+band_y), int(x+band_x))
     return coord
 
 
-# In[134]:
+# In[22]:
 
 
 x_min, x_max, y_min, y_max, width, height = draw_map (df1)
 metro_coord = find_point_coordinates(metro, x_min, x_max, y_min, y_max, width, height)
 
 
-# In[150]:
+# In[23]:
 
 
 house_coord = find_point_coordinates(houses, x_min, x_max, y_min, y_max, width, height)
 house_coord
 
 
-# In[78]:
+# In[24]:
 
 
-print(x_min, x_max, y_min, y_max, width, height)
-
-
-# In[82]:
-
-
-df1.TrStopId.unique()
-
-
-# In[49]:
-
-
-df1[df1.Type =='Школы']
-
-
-# In[ ]:
-
-
-
-
-
-# In[157]:
-
-
-
-
-
-# In[158]:
-
-
-# Define RGB values for each color - матрица соответствия скоростей
+# Define RGB values for each color - матрица соответствия скоростей цвету
 color_map = {
     (0, 128, 0): 1,      # Green -> 1
     (255, 0, 0): 0.2,      # Red -> 2
@@ -537,7 +508,7 @@ for rgb, value in color_map.items():
     result_matrix[mask] = value
 
 
-# In[162]:
+# In[25]:
 
 
 # Матрица скоростей
@@ -546,10 +517,11 @@ result_matrix = np.where(result_matrix==0, 0.3, result_matrix)
 timings = 1./result_matrix
 
 
-# In[163]:
+# In[28]:
 
 
-
+house_coord[0]
+metro_coord[0]
 
 
 # In[ ]:
@@ -564,286 +536,17 @@ timings = 1./result_matrix
 #Расчет времени для всех дорожек и прорисовка дорожек
 
 
-# In[ ]:
+# In[31]:
 
 
+get_ipython().run_cell_magic('time', '', '#Пример расчета одной дорожки\n\nstart = house_coord[0]\nend = metro_coord[0]\n\ncurrent_cost, path = dijkstra_map (timings, start, end, verbose=1)\n')
 
 
+# In[33]:
 
-# In[ ]:
 
-
-
-
-
-# In[ ]:
-
-
-
-
-
-# In[179]:
-
-
-df['color']=df['color'].fillna('yellow')
-
-
-# In[180]:
-
-
-df['color'].unique()
-
-
-# In[139]:
-
-
-df.plot(color = df['color'], figsize = (20,20))
-
-
-# In[115]:
-
-
-path = os.getcwd()+"/vector/"
-combined = pd.DataFrame()
-for item in fnames[:4]:
-    file_path = path+item  # Укажи путь к твоему файлу
-    tmp = gpd.read_file(path+item)
-    combined = pd.concat([combined, tmp], ignore_index=True)
-
-combined    
-
-
-# In[ ]:
-
-
-image_array = np.array(image)
-
-
-# In[169]:
-
-
-#image_array = save_fig_1(df, figsize, 'all')
-fname = 'matrix'
-plot = df.plot(color = df['color'], figsize = (20,20))
-fig = plot.get_figure()
-fig.savefig(f"{fname}.png") #save RGB pic
-canvas = FigureCanvas(fig)
-canvas.draw()
-
-    # Convert the canvas to a numpy array (RGB)
-image = np.frombuffer(canvas.tostring_rgb(), dtype='uint8')
-image = image.reshape(fig.canvas.get_width_height()[::-1] + (3,))
-
-    # Close the figure to free up memory
-plt.close(fig)
-image_array= image
-
-
-# In[170]:
-
-
-image_array
-
-
-# In[174]:
-
-
-result_matrix
-
-
-# In[175]:
-
-
-result_matrix
-df_s = pd.DataFrame (result_matrix)
-
-## save to xlsx file
-
-filepath = 'speed_array_excel_file.csv'
-
-df_s.to_csv(filepath, index=False)
-
-
-# In[104]:
-
-
-path = os.getcwd()+"/vector/"
-combined = pd.DataFrame()
-for item in fnames[:6]:
-    file_path = path+item  # Укажи путь к твоему файлу
-    tmp = gpd.read_file(path+item)
-    combined = pd.concat([combined, tmp], ignore_index=True)
-combined['center'] = combined.geometry.centroid
-#combined_short  
-# Отображение данных на карте
-#combined.plot(figsize = (200,150))
-
-
-# In[108]:
-
-
-#создаем матрицы скоростей пешеходов для разных объектов
-#для улиц - пешеходные
-def pedestrian_yes_street_arr(file_path, street_file_name, check_points_df, borders_df,speed_0, speed_1):
-    data = gpd.read_file(file_path)   
-    data = select_roads_foot(data, borders_df, polygon)
-    df_st = pd.concat([check_points_df, data], ignore_index=True)
-    
-    #data1 = pd.concat([data, check_points_df], ignore_index=True)
-    #df_st = select_roads_foot(data1, borders_df, polygon)
-    arr = save_fig(df_st, figsize, street_file_name)
-    plt.imshow(arr, interpolation='nearest', aspect = 'equal')
-    plt.show()
-    im = Image.fromarray(arr)
-    im.save("yes_foot_street.tiff")
-    arr = convert_pic_to_speed_matrix(arr, speed_0, speed_1)
-    return arr
-
-#для улиц - непешеходные
-def pedestrian_no_street_arr(file_path, street_file_name, check_points_df, borders_df, speed_0, speed_2):
-    data = gpd.read_file(file_path)   
-    data = select_roads_no_foot(data, borders_df, polygon)
-    df_st = pd.concat([check_points_df, data], ignore_index=True)
-    
-    #data1 = pd.concat([data, check_points_df], ignore_index=True)
-    #df_st = select_roads_no_foot(data1, borders_df, polygon)
-    arr = save_fig(df_st, figsize, street_file_name)
-    plt.imshow(arr, interpolation='nearest', aspect = 'equal')
-    plt.show()
-    im = Image.fromarray(arr)
-    im.save("no_foot_street.tiff")
-    arr = convert_pic_to_speed_matrix(arr, speed_0, speed_2)
-    return arr
-
-#для домов
-def pedestrian_house_arr(file_path, house_file_name, check_points_df, borders_df, speed_0, speed_2):
-    data = gpd.read_file(file_path)   
-    data = select_objects(data, borders_df, polygon)
-    df_st = pd.concat([check_points_df, data], ignore_index=True)
-    
-    #data1 = pd.concat([data, check_points_df], ignore_index=True)
-    #df_st = select_objects(data1, borders_df, polygon)
-    arr = save_fig(df_st, figsize, house_file_name)
-    plt.imshow(arr, interpolation='nearest', aspect = 'equal')
-    plt.show()
-    im = Image.fromarray(arr)
-    im.save("houses.tiff")
-    arr = convert_pic_to_speed_matrix(arr, speed_0, speed_3)
-    return arr
-
-def pedestrian_stops_arr(file_path, stops_file_name, check_points_df, borders_df):
-    data = gpd.read_file(file_path)   
-    data = select_objects(data, borders_df, polygon)
-    df_st = pd.concat([check_points_df, data], ignore_index=True)
-    arr = save_fig(df_st, figsize, stops_file_name)
-    plt.imshow(arr, interpolation='nearest', aspect = 'equal')
-    plt.show()
-    im = Image.fromarray(arr)
-    im.save(f"{stops_file_name}.tiff")
-    arr = convert_pic_to_speed_matrix(arr, speed_0, speed_3)
-    return arr
-
-
-# In[109]:
-
-
-def create_lines(xy_min, xy_max, z1):
-    borders_df, polygon = select_region(xy_min, xy_max, z1)
-    # Create GeoDataFrame for the points
-    gdf_points = borders_df
-    # Create lines connecting each consecutive point
-    lines = []
-    for i in range(len(gdf_points) - 1):
-        point1 = gdf_points.geometry.iloc[i]
-        point2 = gdf_points.geometry.iloc[i + 1]
-        line = LineString([point1, point2])  # Create a line between the two points
-        lines.append(line)
-
-    # Optional: To close the loop, connect the last point back to the first
-    # Uncomment the following lines if you want to form a closed polygon
-    # point1 = gdf_points.geometry.iloc[-1]
-    # point2 = gdf_points.geometry.iloc[0]
-    # line = LineString([point1, point2])
-    # lines.append(line)
-
-    # Create a new GeoDataFrame for the lines
-    gdf_lines = gpd.GeoDataFrame(geometry=lines)
-    return gdf_lines 
-check_points_df = create_lines(xy_min, xy_max, z1)
-check_points_df
-
-
-# In[110]:
-
-
-speed_0 = 0 # скорость на пустыре
-speed_1 = 1   # скорость на пешеходной дороге
-speed_2 = 0.2 # скорость на непешеходной дороге
-speed_3 = 0.1 # скорость в здании
-
-fnamess = ['Streets_исходные.shp', "Дома_исходные.shp", 'Выходы_метро.shp', 'Остановки_ОТ.shp']
-
-
-file_path = path+fnamess[0]
-check_points_df = create_lines(xy_min, xy_max, z1)
-arr = pedestrian_yes_street_arr(file_path, 'orig_street_y', check_points_df, borders_df,speed_0, speed_1)
-#arr
-file_path = path+fnamess[0]
-check_points_df = create_lines(xy_min, xy_max, z1)
-arr1 = pedestrian_no_street_arr(file_path, 'orig_street_n', check_points_df, borders_df,speed_0, speed_2) 
-#arr1
-file_path = path+fnamess[1]
-check_points_df = create_polygons(xy_min, xy_max, z1)
-arr2 = pedestrian_house_arr(file_path, 'buildings', check_points_df, borders_df,speed_0, speed_2) 
-arr2
-file_path = path+fnamess[2]
-data = gpd.read_file(file_path)
-
-data = select_objects(data, check_points_df, polygon)
-data = pd.concat([data, borders_df], ignore_index=True)
-arr3 = save_fig(data, figsize, 'metro')
-arr3 = convert_pic_to_speed_matrix(arr3, speed_0, speed_1)
-#pedestrian_stops_arr(file_path, 'metro', check_points_df)
-file_path = path+fnamess[3]
-data = gpd.read_file(file_path)   
-data = select_objects(data, borders_df, polygon)
-data = pd.concat([data, check_points_df], ignore_index=True)
-arr4 = save_fig(data, figsize, 'stops')
-arr4 = convert_pic_to_speed_matrix(arr4, speed_0, speed_1)
-arr4
-
-
-# In[111]:
-
-
-arr_total = arr+ arr1+ arr2 + arr3+arr4
-arr_total
-
-
-# In[112]:
-
-
-arr_total = np.where(arr_total==0, 0.5, arr_total)
-arr_total
-
-
-# In[113]:
-
-
-df_s = pd.DataFrame (arr_total)
-
-## save to xlsx file
-
-filepath = 'speed_array_excel_file.csv'
-
-df_s.to_csv(filepath, index=False)
-
-
-# In[114]:
-
-
-im = Image.fromarray(arr_total)
-im.save("total.tiff")
+print(f'time for route (relative) - {current_cost}')
+path
 
 
 # In[ ]:
